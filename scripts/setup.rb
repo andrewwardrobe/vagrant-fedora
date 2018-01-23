@@ -18,6 +18,12 @@ $options = {
 } 
 
 
+$nfs_config = {
+  atboot: 'false',
+  options: '_netdev,user,noauto',
+  type: 'nfs'
+}
+
 $ideaU = {
   title: 'IDEA_Ultimate',
   path: '/tmp/ideaU.tar.gz',
@@ -81,6 +87,8 @@ def git_config(user, details)
 end
 
 
+
+
 def archive_heredoc(options,config)
   <<~HEREDOC
   file {'#{options[:extract_to]}':
@@ -112,7 +120,24 @@ def archive_heredoc(options,config)
     }
   }
 
- HEREDOC
+  HEREDOC
+end
+
+def mount_heredoc(options, config)
+  <<~HEREDOC
+  file{'#{options['mountpoint']}':
+    ensure => present,
+    mode => '0777'
+  }
+  
+  mount{'#{options['mountpoint']}':
+    ensure  => present,
+    atboot  => '#{config[:atboot]}',
+    fstype  => '#{config[:type]}',
+    device  => '#{options['device']}',
+    options => '#{config[:options]}',
+  }
+  HEREDOC
 end
 
 def dotfile_script(user,dotfile_repo)
@@ -192,6 +217,13 @@ def gen_puppet(config)
   File.open(puppet_file, 'w') do |file|
     file.write archive_heredoc($ideaU,config[:intellij_ultimate]) if (config[:intellij_ultimate] && config[:intellij_ultimate][:install])
     file.write archive_heredoc($rubymine,config[:rubymine]) if (config[:rubymine] && config[:rubymine][:install])
+    if config[:mounts]
+      config[:mounts][:nfs].each do |data|
+        puts data.to_yaml
+        file.write mount_heredoc(data, $nfs_config)
+      end
+    end
+    
   end
   puppet_file
 end
@@ -205,6 +237,17 @@ def do_puppet(config)
   system("puppet apply #{file}" ) unless $options[:nopuppet]
 end
 
+def do_ssh(user, details)
+ path = File.expand_path "~#{user}/.ssh/"
+  Dir.mkdir(path) unless Dir.exists?  path
+  if details[:id_rsa]
+    File.open("#{path}/id_rsa", 'w') { |file| file.write details[:id_rsa] }
+  end
+  if details[:public_key]
+    File.open("#{path}/id_rsa.pub", 'w') { |file| file.write details[:public_key] }
+  end
+end
+
 def main(cfg_file)
   config = symbolize_keys YAML.load_file(cfg_file)
   if config[:users]
@@ -212,6 +255,7 @@ def main(cfg_file)
       next if validate_user(user, details) > 0
       create_user(user.to_s, details)
       git_config(user.to_s, details)
+      do_ssh(user.to_s, details)
       dotfiles(user.to_s, details[:dotfiles]) if details[:dotfiles] && $options[:dotfiles]
     end
   end
