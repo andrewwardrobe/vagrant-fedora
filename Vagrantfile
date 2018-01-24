@@ -6,9 +6,7 @@
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
 Vagrant.configure("2") do |config|
-  config.vm.box = "awar/fedora-puppet"
-
-  #config.vm.network "public_network", mac: '0800275CD467'
+  config.vm.box = "andrewwardrobe/fedora-kde"
 
   config.vm.provider "virtualbox" do |vb|
    # Display the VirtualBox GUI when booting the machine
@@ -16,6 +14,7 @@ Vagrant.configure("2") do |config|
    # Customize the amount of memory on the VM:
     vb.memory = "4096"
     vb.cpus = 2
+    vb.customize ["modifyvm", :id, "--vram", "64"]
   end
 
   # Enable provisioning with a shell script. Additional provisioners such as
@@ -23,7 +22,6 @@ Vagrant.configure("2") do |config|
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-'SHELL'
 	 puppet apply /vagrant/manifests/main.pp
-	 echo -e "{\n\t\"dns\": [\"10.133.49.85\",\"10.133.49.62\",\"10.97.226.10\",\"10.97.226.10\",\"192.168.1.1\", \"192.168.0.1\", \"8.8.8.8\"]\n}" > /etc/docker/daemon.json
 	 service docker restart
 	 if [ -e /vagrant/data.yaml ]; then
        /vagrant/scripts/setup.rb /vagrant/data.yaml
