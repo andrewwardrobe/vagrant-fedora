@@ -4,6 +4,7 @@ require 'yaml'
 require 'etc'
 require 'English'
 require 'optparse'
+require 'fileutils'
 
 class Hash
   def to_s
@@ -45,11 +46,24 @@ Terminal=false
 StartupWMClass=jetbrains-idea
 HEREDOC
 
+$rubymine_de = <<~HEREDOC
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=RubyMine
+Icon=/opt/rubymine/RubyMine-2017.3.2/bin/RMlogo.svg
+Exec="/opt/rubymine/RubyMine-2017.3.2/bin/rubymine.sh" %f
+Comment=The Drive to Develop
+Categories=Development;IDE;
+Terminal=false
+StartupWMClass=jetbrains-rubymine
+HEREDOC
+
 $rubymine = {
   title: 'rubymine',
   path: '/tmp/rubymine.tar.gz',
   extract_to: '/opt/rubymine',
-  source: 'https://download-cf.jetbrains.com/idea/ideaIU-2017.3.3.tar.gz',
+  source: 'https://download.jetbrains.com/ruby/RubyMine-2017.3.2.tar.gz',
   creates: '/opt/rubymine/RubyMine-2017.3.1'
 }
 
@@ -159,6 +173,7 @@ def dotfile_script(user,dotfile_repo)
     fi;
     config checkout > /dev/null
     config config status.showUntrackedFiles no
+    sed -i 's/%USER%/#{user}/g' .bashrc
   HEREDOC
 end
 
@@ -219,7 +234,6 @@ def gen_puppet(config)
     file.write archive_heredoc($rubymine,config[:rubymine]) if (config[:rubymine] && config[:rubymine][:install])
     if config[:mounts]
       config[:mounts][:nfs].each do |data|
-        puts data.to_yaml
         file.write mount_heredoc(data, $nfs_config)
       end
     end
@@ -230,6 +244,7 @@ end
 
 def shortcuts(config)
 	File.open('/usr/local/share/applications/jetbrains-idea.desktop','w') {|file| file.write $ideaU_de} if (config[:intellij_ultimate] && config[:intellij_ultimate][:install])
+	File.open('/usr/local/share/applications/jetbrains-rubymine.desktop','w') {|file| file.write $rubymine_de} if (config[:rubymine] && config[:rubymine][:install])
 end
 
 def do_puppet(config)
@@ -246,6 +261,11 @@ def do_ssh(user, details)
   if details[:public_key]
     File.open("#{path}/id_rsa.pub", 'w') { |file| file.write details[:public_key] }
   end
+  FileUtils.chown_R(user, user, path)
+  File.open("#{path}/config",'w') do |file|
+    
+  end
+  
 end
 
 def main(cfg_file)

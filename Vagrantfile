@@ -22,9 +22,13 @@ Vagrant.configure("2") do |config|
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-'SHELL'
 	 puppet apply /vagrant/manifests/main.pp
+   echo -e "{\n\t\"dns\": [\"10.133.49.85\",\"10.133.49.62\",\"10.97.226.10\",\"10.97.226.10\",\"192.168.1.1\", \"192.168.0.1\", \"8.8.8.8\"]\n}" > /etc/docker/daemon.json
 	 service docker restart
 	 if [ -e /vagrant/data.yaml ]; then
        /vagrant/scripts/setup.rb /vagrant/data.yaml
 	 fi
+   
+   sudo -u awar cp /vagrant/keys/rubymine.key /home/awar/.RubyMine2017.3/config/rubymine.key
+   sudo -u awar cp /vagrant/keys/idea.key /home/awar/.IntelliJIdea2017.3/config/idea.key
   SHELL
 end
