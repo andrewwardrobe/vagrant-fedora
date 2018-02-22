@@ -5,6 +5,7 @@ require 'etc'
 require 'English'
 require 'optparse'
 require 'fileutils'
+require 'erb'
 
 class Hash
   def to_s
@@ -211,6 +212,21 @@ def symbolize_keys(hash)
   }
 end
 
+def host_entry(title, hash)
+  bnd = binding  
+  bnd.local_variable_set(:title, title)
+  bnd.local_variable_set(:hash, hash)
+  template = <<HEREDOC
+  host{'<%= title %>':
+    ip => '<%= hash[:ip] %>',
+    <% if hash[:aliases] %>
+    host_aliases => <%= hash[:aliases] %>,
+    <% end %>
+}
+HEREDOC
+  ERB.new(template, 1, '>').result(bnd)
+end
+
 def validate_user(user,details)
   puts "Validating #{user}:"
   errs = 0
@@ -237,7 +253,10 @@ def gen_puppet(config)
         file.write mount_heredoc(data, $nfs_config)
       end
     end
-    
+    config[:hosts].each do | key, val | 
+      file.write host_entry(key, val)
+    end
+
   end
   puppet_file
 end
@@ -261,11 +280,24 @@ def do_ssh(user, details)
   if details[:public_key]
     File.open("#{path}/id_rsa.pub", 'w') { |file| file.write details[:public_key] }
   end
-  FileUtils.chown_R(user, user, path)
+  
+  ssh_config = details[:ssh_config]
   File.open("#{path}/config",'w') do |file|
     
+    ssh_config[:config].each do |key, val| 
+      file.write "#{key} #{val}\n" 
+    end 
+ 
+    ssh_config[:hosts].each do |key, val| 
+      file.write "Host #{key}\n" 
+      val.each do |k, v| 
+        file.write "  #{k} #{v}\n" 
+      end 
+    end
+
   end
-  
+  FileUtils.chown_R(user, user, path)
+  FileUtils.chmod_R(0700, path)
 end
 
 def main(cfg_file)
