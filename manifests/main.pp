@@ -45,6 +45,14 @@ file{'/opt/idea':
   ensure => 'directory',
 }
 
+file_line{'ansible_callback':
+  line => 'callback_plugins   = ~/ansible/plugins/callback:/usr/share/ansible/plugins/callback',
+  match => 'callback_plugins   = /usr/share/ansible/plugins/callback',
+  path => '/etc/ansible/ansible.cfg'
+}
+
+
+
 archive{'intellij':
   ensure        => present,
   path          => '/tmp/idea/intellij.tar.gz',
