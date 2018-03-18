@@ -52,6 +52,30 @@ file_line{'ansible_callback':
 }
 
 
+archive{'terraform':
+  ensure        => present,
+  path          => '/tmp/terraform.zip',
+  cleanup       => true,
+  extract       => true,
+  extract_path  => '/usr/bin',
+  creates       => '/usr/local/bin/terraform',
+  source        => 'https://releases.hashicorp.com/terraform/0.11.3/terraform_0.11.3_linux_amd64.zip',
+  checksum      => '6b8a7b83954597d36bbed23913dd51bc253906c612a070a21db373eab71b277b',
+  checksum_type => 'sha256',
+}
+
+archive{'packer':
+  ensure        => present,
+  path          => '/tmp/packer.zip',
+  cleanup       => true,
+  extract       => true,
+  extract_path  => '/usr/bin',
+  creates       => '/usr/local/bin/packer',
+  source        => 'https://releases.hashicorp.com/packer/1.2.1/packer_1.2.1_linux_amd64.zip',
+  checksum      => 'dd90f00b69c4d8f88a8d657fff0bb909c77ebb998afd1f77da110bc05e2ed9c3',
+  checksum_type => 'sha256',
+}
+
 
 archive{'intellij':
   ensure        => present,
